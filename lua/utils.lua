@@ -12,7 +12,10 @@ return {
 
       runVimCommand = function(command)
           return "<cmd>" .. command .. "<CR>"
-      end
+      end,
+
+      maxPriority = math.maxinteger,
+      minPriority = math.mininteger
   }
 }
 

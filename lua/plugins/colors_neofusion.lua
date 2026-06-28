@@ -1,6 +1,7 @@
+local utils = require("utils")
 return {
     "diegoulloao/neofusion.nvim"
-    , priority = 1000
+    , priority = utils.vim.maxPriority
     --, config = true
     , config = function()
         vim.o.background = "dark"
