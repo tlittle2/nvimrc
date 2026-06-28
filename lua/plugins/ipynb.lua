@@ -8,7 +8,7 @@ return {
     -- "folke/snacks.nvim", -- optional, for inline images
   },
   opts = {
-    ft = "python"
+    ft = "ipynb"
   },
 
 }
