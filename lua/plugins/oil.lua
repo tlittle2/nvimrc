@@ -13,9 +13,16 @@ return {
   -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
   lazy = false,
 
+
   config = function()
     require("oil").setup()
-    vim.keymap.set(utils.vim.mode.normal, "-", utils.vim.runVimCommand("Oil"), { desc = "Open parent directory" })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader("-"), utils.vim.runVimCommand("topleft vs | Oil"), { desc = "Open parent directory" })
+
+    local maps = {
+      ["-"] = {utils.vim.runVimCommand("Oil"), "Open parent directory"},
+      [utils.vim.prefixLeader("-")] = {utils.vim.runVimCommand("topleft vs | Oil"), "Open parent directory"},
+    }
+
+    utils.loop(maps, function(k,v) vim.keymap.set(utils.vim.mode.normal, k, v[1], { desc = v[2] }) end)
+
   end
 }

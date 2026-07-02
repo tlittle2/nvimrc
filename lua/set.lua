@@ -1,5 +1,8 @@
 local utils = require("utils")
 
+local mode = utils.vim.mode
+local key = utils.vim.key
+
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 vim.g.have_nerd_font = false
@@ -16,7 +19,7 @@ vim.opt.undofile = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.signcolumn = 'yes'
-vim.opt.updatetime = 250
+vim.opt.updatetime = 50
 vim.opt.timeoutlen = 300
 vim.opt.splitright = true
 vim.opt.splitbelow = true
@@ -38,57 +41,57 @@ vim.opt.termguicolors = true
 vim.opt.colorcolumn = "80"
 
 vim.schedule(function()
-	vim.o.clipboard = "unnamedplus"
+  vim.o.clipboard = "unnamedplus"
+end)
+
+-- NOTE: Singular remaps
+
+-- This won't work in all terminal emulators/tmux/etc. Try your own mapping or just use <C-\><C-n> to exit terminal mode
+vim.keymap.set(mode.terminal, '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
+
+vim.keymap.set(mode.normal, '<Esc>', utils.vim.runVimCommand('nohlsearch'))
+vim.keymap.set(utils.vim.mode.normal, 'Q', '<Nop>')
+
+-- NOTE: "utils.loop" remaps
+
+-- go back to normal mode after allocating new line
+utils.loop({"o", "O"}, function(_, v) vim.keymap.set(mode.normal, utils.vim.prefixLeader(v), v ..'<Esc>') end)
+
+--stay in 'indent' mode after indenting
+utils.loop({">", "<"}, function(_, v) vim.keymap.set(mode.visual, v, v .. 'gv') end)
+
+
+--keep cursor centered while scrolling
+local pageKeys = {
+  ["d"] = "half-page down",
+  ["u"] = "half-page up",
+  ["b"] = "full-page down",
+  ["f"] = "full-page up",
+}
+
+utils.loop(pageKeys, function(k, _) vim.keymap.set(mode.normal, key.ctrl(k), key.ctrl(k) .. 'zz') end)
+
+
+local directions = {
+  ["left"] = "h",
+  ["right"] = "l",
+  ["up"] = "k",
+  ["down"] = "j",
+}
+
+--Disable arrow keys in normal/visual mode
+utils.loop(directions, function(arrow,vim_key)
+  local message = "Use " .. vim_key  .. " to move!!"
+  vim.keymap.set({mode.normal, mode.visual}, utils.string.inBrackets(arrow) , utils.vim.runVimCommand("echo " .. utils.string.sQuote(message)))
 end)
 
 
-vim.keymap.set(utils.vim.mode.normal, '<Esc>', utils.vim.runVimCommand('nohlsearch'))
-
---go back to normal mode after allocating new line
-vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader("o"), 'o<Esc>')
-vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader("O"), 'O<Esc>')
-
-
---stay in 'indent' mode after indenting
-vim.keymap.set(utils.vim.mode.visual, '<', '<gv')
-vim.keymap.set(utils.vim.mode.visual, '>', '>gv')
-
---keep cursor centered while scrolling
-vim.keymap.set(utils.vim.mode.normal,'<C-d>', '<C-d>zz')
-vim.keymap.set(utils.vim.mode.normal,'<C-u>', '<C-u>zz')
-vim.keymap.set(utils.vim.mode.normal,'<C-f>', '<C-f>zz')
-vim.keymap.set(utils.vim.mode.normal,'<C-b>', '<C-b>zz')
-
-
-vim.keymap.set(utils.vim.mode.normal, '<Esc>', utils.vim.runVimCommand('nohlsearch'))
-
-
--- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
--- or just use <C-\><C-n> to exit terminal mode
-vim.keymap.set(utils.vim.mode.terminal, '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
-
--- TIP: Disable arrow keys in normal mode
-vim.keymap.set(utils.vim.mode.normal, '<left>', '<cmd>echo "Use h to move!!"<CR>')
-vim.keymap.set(utils.vim.mode.normal, '<right>', '<cmd>echo "Use l to move!!"<CR>')
-vim.keymap.set(utils.vim.mode.normal, '<up>', '<cmd>echo "Use k to move!!"<CR>')
-vim.keymap.set(utils.vim.mode.normal, '<down>', '<cmd>echo "Use j to move!!"<CR>')
-vim.keymap.set(utils.vim.mode.normal, 'Q', '<Nop>')
-
-
--- Keybinds to make split navigation easier.
---  Use CTRL+<hjkl> to switch between windows
---
---  See `:help wincmd` for a list of all window commands
-vim.keymap.set(utils.vim.mode.normal, '<A-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set(utils.vim.mode.normal, '<A-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set(utils.vim.mode.normal, '<A-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set(utils.vim.mode.normal, '<A-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
-
--- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
--- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
--- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
--- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
--- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
+--Keybinds to make split navigation easier.
+--Use ALT+<hjkl> to switch between windows
+--See `:help wincmd` for a list of all window commands
+utils.loop(directions, function(direction,vim_key)
+  vim.keymap.set(mode.normal, key.alt(vim_key), key.ctrl("w") .. key.ctrl(vim_key), { desc = 'Move focus to the ' .. direction .. ' window' })
+end)
 
 
 -- NOTE: "run" current file
@@ -114,5 +117,5 @@ vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader("r"), function()
   vim.cmd(tbl[ft])
   vim.cmd('startinsert')
 
-  end , {desc = "execute current file"}
+end , {desc = "execute current file"}
 )

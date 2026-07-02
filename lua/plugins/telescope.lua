@@ -70,24 +70,34 @@ return   { -- Fuzzy Finder (files, lsp, etc)
     }
 
     -- Enable Telescope extensions if they are installed
-    pcall(require('telescope').load_extension, 'fzf')
-    pcall(require('telescope').load_extension, 'ui-select')
+    utils.loop({'fzf', 'ui-select'}, function(_,v)
+      pcall(require('telescope').load_extension, v)
+    end)
+
+
 
     -- See `:help telescope.builtin`
     local builtin = require 'telescope.builtin'
 
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sh'), builtin.help_tags, { desc = '[S]earch [H]elp' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sk'), builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sf'), builtin.find_files, { desc = '[S]earch [F]iles' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('ss'), builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sg'), builtin.live_grep, { desc = '[S]earch by [G]rep' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sd'), builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sr'), builtin.resume, { desc = '[S]earch [R]esume' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('s.'), builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sc'), builtin.commands, { desc = '[S]earch [C]ommands' })
+    local searchMaps = {
+      [utils.vim.prefixLeader('sh')]= {builtin.help_tags,'[S]earch [H]elp'},
+      [utils.vim.prefixLeader('sk')]= {builtin.keymaps,'[S]earch [K]eymaps'},
+      [utils.vim.prefixLeader('sf')]= {builtin.find_files,'[S]earch [F]iles'},
+      [utils.vim.prefixLeader('ss')]= {builtin.builtin,'[S]earch [S]elect Telescope'},
+      [utils.vim.prefixLeader('sg')]= {builtin.live_grep,'[S]earch by [G]rep'},
+      [utils.vim.prefixLeader('sd')]= {builtin.diagnostics,'[S]earch [D]iagnostics'},
+      [utils.vim.prefixLeader('sr')]= {builtin.resume,'[S]earch [R]esume'},
+      [utils.vim.prefixLeader('s.')]= {builtin.oldfiles,'[S]earch Recent Files ("." for repeat)'},
+      [utils.vim.prefixLeader('sc')]= {builtin.commands,'[S]earch [C]ommands'},
+      [utils.vim.prefixLeader('<leader>')] = {builtin.buffers,'[ ] Find existing buffers'},
+      [utils.vim.prefixLeader('sw')] = {builtin.grep_string,'[S]earch current [W]ord', { utils.vim.mode.normal, utils.vim.mode.visual }}
+    }
 
-    vim.keymap.set({ utils.vim.mode.normal, utils.vim.mode.visual }, utils.vim.prefixLeader('sw'), builtin.grep_string, { desc = '[S]earch current [W]ord' })
-    vim.keymap.set(utils.vim.mode.normal,'<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+    utils.loop(searchMaps, function(k,v)
+      vim.keymap.set(v[3] or utils.vim.mode.normal, k, v[1], { desc = v[2] })
+    end)
+
+
 
     -- This runs on LSP attach per buffer (see main LSP attach function in 'neovim/nvim-lspconfig' config for more info,
     -- it is better explained there). This allows easily switching between pickers if you prefer using something else!
@@ -96,34 +106,31 @@ return   { -- Fuzzy Finder (files, lsp, etc)
       callback = function(event)
         local buf = event.buf
 
-        -- Find references for the word under your cursor.
-        vim.keymap.set(utils.vim.mode.normal, 'grr', builtin.lsp_references, { buffer = buf, desc = '[G]oto [R]eferences' })
+        local lspAttachMap = {
+          -- Find references for the word under your cursor.
+          ['grr'] = { builtin.lsp_references,'[G]oto [R]eferences' },
 
-        -- Jump to the implementation of the word under your cursor.
-        -- Useful when your language has ways of declaring types without an actual implementation.
-        vim.keymap.set(utils.vim.mode.normal, 'gri', builtin.lsp_implementations, { buffer = buf, desc = '[G]oto [I]mplementation' })
+          -- Jump to the implementation of the word under your cursor
+          ['gri'] = { builtin.lsp_implementations,'[G]oto [I]mplementation' },
 
-        -- Jump to the definition of the word under your cursor.
-        -- This is where a variable was first declared, or where a function is defined, etc.
-        -- To jump back, press <C-t>.
-        vim.keymap.set(utils.vim.mode.normal, 'grd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
+          -- Jump to the definition of the word under your cursor (where word/function is first defined). jump back with <C-t>
+          ['grd'] = { builtin.lsp_definitions,'[G]oto [D]efinition' },
 
-        -- Fuzzy find all the symbols in your current document.
-        -- Symbols are things like variables, functions, types, etc.
-        vim.keymap.set(utils.vim.mode.normal, 'gO', builtin.lsp_document_symbols, { buffer = buf, desc = 'Open Document Symbols' })
+          -- Fuzzy find all the symbols (things like variables, functions, types, etc.) in your current document.
+          ['gO'] =  { builtin.lsp_document_symbols, 'Open Document Symbols'},
 
-        -- Fuzzy find all the symbols in your current workspace.
-        -- Similar to document symbols, except searches over your entire project.
-        vim.keymap.set(utils.vim.mode.normal, 'gW', builtin.lsp_dynamic_workspace_symbols, { buffer = buf, desc = 'Open Workspace Symbols' })
+          -- Fuzzy find all the symbols in your current workspace. Similar to document symbols, except searches over your entire project.
+          ['gW'] =  { builtin.lsp_dynamic_workspace_symbols,'Open Workspace Symbols'},
 
-        -- Jump to the type of the word under your cursor.
-        -- Useful when you're not sure what type a variable is and you want to see
-        -- the definition of its *type*, not where it was *defined*.
-        vim.keymap.set(utils.vim.mode.normal, 'grt', builtin.lsp_type_definitions, { buffer = buf, desc = '[G]oto [T]ype Definition' })
+          -- Jump to the type of the word under your cursor. Useful when you're not sure what type a variable is and you want to see the definition of its *type*, not where it was *defined*.
+          ['grt'] = { builtin.lsp_type_definitions,'[G]oto [T]ype Definition' },
+        }
+
+        utils.loop(lspAttachMap, function(k, v) vim.keymap.set(utils.vim.mode.normal, k, v[1], { buffer = buf, desc = v[2] }) end)
       end,
     })
 
-    -- Override default behavior and theme when searching
+
     vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('/'), function()
       -- You can pass additional configuration to Telescope to change the theme, layout, etc.
       builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
@@ -134,14 +141,14 @@ return   { -- Fuzzy Finder (files, lsp, etc)
 
     -- It's also possible to pass additional configuration options.
     --  See `:help telescope.builtin.live_grep()` for information about particular keys
-    vim.keymap.set('n', '<leader>s/',
+    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('s/'),
       function()
         builtin.live_grep { grep_open_files = true, prompt_title = 'Live Grep in Open Files', }
       end, { desc = '[S]earch [/] in Open Files' }
     )
 
     -- Shortcut for searching your Neovim configuration files
-    vim.keymap.set('n', '<leader>sn', function()
+    vim.keymap.set(utils.vim.mode.normal, utils.vim.prefixLeader('sn'), function()
       builtin.find_files { cwd = vim.fn.stdpath 'config' }
     end, { desc = '[S]earch [N]eovim files' }
     )

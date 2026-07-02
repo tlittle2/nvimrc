@@ -18,6 +18,7 @@ return {
   --START of lsp installs
   {
     "neovim/nvim-lspconfig",
+
     vim.lsp.enable("basedpyright"),
     vim.lsp.enable("gopls"),
     vim.lsp.enable("rust_analyzer"),
